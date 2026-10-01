@@ -2,7 +2,9 @@
 
 **Copyright (c) 2026 M. Hertrick**
 
-This work, including the drill concept, text instructions, and interactive HTML5 animation, is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](http://creativecommons.org/licenses/by-nc/4.0/).
+While the underlying drill concepts are adapted from traditional hockey exercises, this specific digital representation, text write-up, and interactive HTML5 animation are original works. 
+
+This specific work is licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License](http://creativecommons.org/licenses/by-nc/4.0/).
 
 ### You are free to:
 * **Share** — copy and redistribute the material in any medium or format
