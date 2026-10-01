@@ -1,6 +1,6 @@
 # License
 
-**Copyright (c) 2026 M. Hertrick**
+**Copyright (c) 2026 Michael Hertrick**
 
 While the underlying drill concepts are adapted from traditional hockey exercises, this specific digital representation, text write-up, and interactive HTML5 animation are original works. 
 
