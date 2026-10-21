@@ -96,7 +96,7 @@
                 </li>
                 <li><strong>Section 2 — High-Zone Figure-8 (~7–8 seconds, 2 Cones):</strong>
                     <ul>
-                        <li>Crossing the Blue Line, the skater executes one tight, high-speed <strong>Figure-8</strong> around the 2 cones in the high zone (looping over the top of the first cone, cutting diagonally between them, looping around the back of the second cone, cutting back through the middle, and looping underneath the first cone) before accelerating deep into the corner.</li>
+                        <li>Crossing the Blue Line, the skater executes one tight, high-speed <strong>Figure-8</strong> around the 2 cones in the high zone (entering over the top of the first cone, cutting diagonally between them, looping counter-clockwise around the second cone, cutting back through the middle, and wrapping clockwise all the way around the first cone to exit over the top) before accelerating deep into the corner.</li>
                     </ul>
                 </li>
                 <li><strong>Section 3 — Deep-Corner "V" Walkout &amp; Backpedal (~8–9 seconds, 3 Cones):</strong>
@@ -202,25 +202,35 @@
             { t: 75,  x: 188, y: 100, mode: 'FWD' },
             { t: 92,  x: 235, y: 56,  mode: 'STOP' },
             { t: 96,  x: 235, y: 56,  mode: 'FWD' },
-            { t: 100, x: 285, y: 62,  mode: 'FWD' },
+            { t: 100, x: 285, y: 57,  mode: 'FWD' },
 
-            // Section 2: Figure-8 around Cone 2A (345, 85) and Cone 2B (465, 85) (100 to 200)
-            { t: 114, x: 345, y: 55,  mode: 'TURN' }, // Over top of Cone 2A
-            { t: 128, x: 405, y: 85,  mode: 'TURN' }, // Diagonal cut through middle
-            { t: 142, x: 465, y: 115, mode: 'TURN' }, // Under bottom of Cone 2B
-            { t: 154, x: 495, y: 85,  mode: 'TURN' }, // Around back of Cone 2B
-            { t: 166, x: 465, y: 55,  mode: 'TURN' }, // Over top of Cone 2B
-            { t: 178, x: 405, y: 85,  mode: 'TURN' }, // Diagonal cut back through middle
-            { t: 190, x: 325, y: 112, mode: 'TURN' }, // Under bottom of Cone 2A
-            { t: 200, x: 485, y: 65,  mode: 'FWD'  }, // Accelerating toward Deep Corner
+            // Section 2: Full Figure-8 around Cone 2A (345, 85) and Cone 2B (465, 85)
+            // Enters over top of 2A -> cuts down-right -> loops CCW around 2B -> cuts down-left -> loops CW all the way around 2A -> exits over top toward Section 3
+            { t: 107, x: 345, y: 57,  mode: 'TURN' }, // Top of Cone 2A
+            { t: 113, x: 372, y: 65,  mode: 'TURN' }, // Top-right of Cone 2A
+            { t: 120, x: 405, y: 85,  mode: 'TURN' }, // Center X-crossing (down-right)
+            { t: 127, x: 438, y: 105, mode: 'TURN' }, // Bottom-left of Cone 2B
+            { t: 134, x: 465, y: 113, mode: 'TURN' }, // Bottom of Cone 2B
+            { t: 141, x: 488, y: 102, mode: 'TURN' }, // Bottom-right of Cone 2B
+            { t: 148, x: 495, y: 85,  mode: 'TURN' }, // Far right of Cone 2B
+            { t: 155, x: 488, y: 68,  mode: 'TURN' }, // Top-right of Cone 2B
+            { t: 162, x: 465, y: 57,  mode: 'TURN' }, // Top of Cone 2B
+            { t: 169, x: 438, y: 65,  mode: 'TURN' }, // Top-left of Cone 2B
+            { t: 176, x: 405, y: 85,  mode: 'TURN' }, // Center X-crossing (down-left)
+            { t: 183, x: 372, y: 105, mode: 'TURN' }, // Bottom-right of Cone 2A
+            { t: 190, x: 345, y: 113, mode: 'TURN' }, // Bottom of Cone 2A
+            { t: 196, x: 322, y: 102, mode: 'TURN' }, // Bottom-left of Cone 2A
+            { t: 202, x: 315, y: 85,  mode: 'TURN' }, // Far left of Cone 2A
+            { t: 208, x: 322, y: 68,  mode: 'TURN' }, // Top-left of Cone 2A
+            { t: 214, x: 345, y: 55,  mode: 'FWD'  }, // Top of Cone 2A (completes turn & exits straight toward Sec 3)
 
-            // Section 3: Deep-Corner "V" Walkout & Backpedal (200 to 300)
+            // Section 3: Deep-Corner "V" Walkout & Backpedal (214 to 300)
             // Cone 3A (695, 55), Cone 3B (595, 115), Cone 3C (695, 172)
-            { t: 225, x: 685, y: 55,  mode: 'STOP' }, // Drives deep to top corner cone & stops
-            { t: 230, x: 685, y: 55,  mode: 'BWD'  },
-            { t: 258, x: 605, y: 115, mode: 'STOP' }, // Backpedals hard out to hashmark cone
-            { t: 264, x: 605, y: 115, mode: 'FWD'  }, // Opens hips forward
-            { t: 288, x: 705, y: 165, mode: 'TURN' }, // Drives to low corner cone
+            { t: 236, x: 685, y: 55,  mode: 'STOP' }, // Drives deep to top corner cone & stops
+            { t: 241, x: 685, y: 55,  mode: 'BWD'  },
+            { t: 265, x: 605, y: 115, mode: 'STOP' }, // Backpedals hard out to hashmark cone
+            { t: 270, x: 605, y: 115, mode: 'FWD'  }, // Opens hips forward
+            { t: 290, x: 705, y: 165, mode: 'TURN' }, // Drives to low corner cone
             { t: 300, x: 675, y: 195, mode: 'FWD'  }, // Rounds low corner cone into return lane
 
             // Section 4: Transition Pivots along y = 208 (300 to 400)
