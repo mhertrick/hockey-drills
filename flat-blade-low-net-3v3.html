@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flat-Blade &amp; Low-Net Cross-Ice 3v3</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f0f2f5; color: #2c3e50; line-height: 1.6; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+        h1 { color: #1a365d; text-align: center; border-bottom: 2px solid #edf2f7; padding-bottom: 15px; margin-bottom: 25px; }
+        h2 { color: #2b6cb0; margin-top: 30px; border-bottom: 1px solid #edf2f7; padding-bottom: 5px; }
+        h3 { color: #2c5282; margin-top: 20px; margin-bottom: 8px; }
+        .canvas-container { text-align: center; margin: 25px 0; }
+        canvas { max-width: 100%; height: auto; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); background-color: #fff; }
+        .controls { text-align: center; margin-top: 15px; display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+        .phase-controls { text-align: center; margin-top: 10px; display: flex; justify-content: center; flex-wrap: wrap; gap: 8px; }
+        button { background: #2b6cb0; color: #fff; border: none; padding: 10px 18px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: background 0.2s, transform 0.1s; }
+        button:hover { background: #1a365d; }
+        button.phase-btn { background: #edf2f7; color: #2c5282; border: 1px solid #cbd5e0; padding: 7px 13px; font-size: 13px; }
+        button.phase-btn:hover, button.phase-btn.active { background: #2b6cb0; color: #fff; border-color: #2b6cb0; }
+        .legend { display: flex; justify-content: center; gap: 18px; margin-top: 15px; font-size: 13.5px; font-weight: bold; flex-wrap: wrap; }
+        .legend span { display: flex; align-items: center; gap: 7px; }
+        .dot { width: 15px; height: 15px; border-radius: 50%; display: inline-block; }
+        .dot-x { background-color: #e74c3c; }
+        .dot-xb { background-color: #e74c3c; border: 2.5px solid #f1c40f; box-sizing: border-box; }
+        .dot-o { background-color: #3498db; }
+        .dot-ob { background-color: #3498db; border: 2.5px solid #f1c40f; box-sizing: border-box; }
+        .dot-c { background-color: #27ae60; }
+        .dot-p { background-color: #222; width: 11px; height: 11px; }
+        .dot-cone { width: 0; height: 0; border-left: 7px solid transparent; border-right: 7px solid transparent; border-bottom: 14px solid #e67e22; display: inline-block; }
+        .section { margin-bottom: 25px; }
+        .math-box { background: #f8fafc; border-left: 4px solid #2b6cb0; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 15px 0; }
+        .lesson-box { background: #fffaf0; border-left: 4px solid #dd6b20; padding: 15px 20px; border-radius: 0 8px 8px 0; margin: 15px 0; }
+        .rule-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 15px; margin-top: 15px; }
+        .rule-card { background: #f8fafc; border: 1px solid #e2e8f0; border-top: 4px solid #2b6cb0; border-radius: 8px; padding: 15px; }
+        .rule-card.penalty { border-top-color: #e74c3c; }
+        .rule-card.bonus { border-top-color: #27ae60; }
+        .rule-card h4 { margin: 0 0 8px 0; color: #1a365d; font-size: 16px; }
+        .rule-card p { margin: 0; font-size: 14px; }
+        ul, ol { padding-left: 20px; }
+        li { margin-bottom: 10px; }
+        .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #edf2f7; text-align: center; font-size: 13px; color: #7f8c8d; }
+        .footer a { color: #2b6cb0; text-decoration: none; }
+        .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Flat-Blade &amp; Low-Net Cross-Ice 3v3 ("No Shovels")</h1>
+        
+        <div class="canvas-container">
+            <canvas id="rink" width="820" height="540"></canvas>
+            <div class="legend">
+                <span><span class="dot dot-x"></span> Team Red (X1–X3)</span>
+                <span><span class="dot dot-xb"></span> Red Wall Bumpers (XB)</span>
+                <span><span class="dot dot-o"></span> Team Blue (O1–O3)</span>
+                <span><span class="dot dot-ob"></span> Blue Wall Bumpers (OB)</span>
+                <span><span class="dot dot-c"></span> Coach / Puck Feeder (C)</span>
+                <span><span class="dot dot-p"></span> Puck</span>
+                <span><span class="dot-cone"></span> "Air-Mail" Penalty Cone</span>
+            </div>
+            <div class="controls">
+                <button id="playBtn" onclick="togglePlay()">Play Animation</button>
+                <button onclick="resetAnimation()">Reset</button>
+                <button id="guideBtn" onclick="toggleGuides()" style="background-color: #4a5568;">Hide Passing Lanes &amp; Zone Guides</button>
+                <button id="netViewBtn" onclick="toggleNetInset()" style="background-color: #d69e2e;">Show Side-View Net Geometry Inset</button>
+            </div>
+            <div class="phase-controls">
+                <button class="phase-btn" id="btnP1" onclick="jumpToPhase(0)">1. Open-Blade Shovel = Turnover</button>
+                <button class="phase-btn" id="btnP2" onclick="jumpToPhase(105)">2. Flat Bumper + 2-Pt "Clang" Goal</button>
+                <button class="phase-btn" id="btnP3" onclick="jumpToPhase(245)">3. High Shot = Penalty Cone Sprint</button>
+                <button class="phase-btn" id="btnP4" onclick="jumpToPhase(355)">4. 3v2 Power Play Low Goal</button>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Why This Game Fixes Bad Stick Habits Automatically</h2>
+            <p>At the 10U level, telling players to <em>"keep your blade flat, stop shoveling the puck, roll your wrists over, and keep your shots low"</em> rarely sticks during fast play because players revert to their default habits under pressure. Typically, players keep their top hand glued to their hip and open their blade like a golf wedge or snow shovel—causing passes to flutter off the ice, receptions to pop up into the air, and shots to sail high over the net.</p>
+            <div class="lesson-box">
+                <strong>The Face-Down Net Geometry Hack (Full Width, ~1/4 Height, Flush Ice Entry):</strong>
+                <p style="margin: 8px 0 0 0;">By tipping two regulation nets <strong>90&deg; forward onto their faces</strong> (so the red goal posts and crossbar lie flat on the ice), you create the ultimate mechanical teacher:</p>
+                <ul style="margin: 8px 0 0 0;">
+                    <li><strong>Flush Ice Entrance:</strong> Between the bottom heels of the two red goal posts, there is <strong>zero pipe on the ice</strong>—pucks sliding dead-flat or shot 6&ndash;12 inches off the ice enter cleanly.</li>
+                    <li><strong>Full 6-Foot Regulation Width, ~1/4 Height:</strong> Shooters still get the full 72-inch horizontal net width to attack laterally, but the upturned bottom base skirt acts as a <strong>low crossbar</strong> (~12&ndash;15" effective vertical window before the netting slopes sharply down to the ice).</li>
+                    <li><strong>The "Clang Bar" 4 Feet Deep:</strong> The red crossbar now rests flat on the ice at the back of the pocket. A hard, low shot with rolled wrists drives straight into the back bar with a loud <em>CLANG!</em>, while a shoveled/scooped shot flies right over the upturned base skirt.</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>The 4 Habit-Enforcing Game Rules</h2>
+            <div class="rule-grid">
+                <div class="rule-card penalty">
+                    <h4>1. "No-Shovel" Flat-Ice Pass Rule</h4>
+                    <p>Every pass <strong>must stay completely flat on the ice</strong>, and every reception must stay quiet on the tape. If a player shovels/chips a pass into the air—or leaves their blade open like a ramp so a pass pops up—the Coach blows a quick whistle: <strong>instant turnover</strong> and a new puck is fed to the other team.</p>
+                </div>
+                <div class="rule-card">
+                    <h4>2. "Activate the Bumper" Rule</h4>
+                    <p>Waiting teammates stand along the Blue Line and Goal Line boards as active <strong>Wall Bumpers</strong>. On any possession change, a team must complete <strong>at least one flat, tape-to-tape pass with a teammate Bumper</strong> before they are "unlocked" to shoot. (Bumpers cannot be checked, encouraging heads-up flat passing.)</p>
+                </div>
+                <div class="rule-card penalty">
+                    <h4>3. "Air-Mail" Penalty Cone (3v2 Power Play)</h4>
+                    <p>If a player shoots high over the upturned low net (or hits the glass), they don't just lose the puck—the shooter must immediately sprint out across the Blue Line and <strong>tag the Neutral-Zone Penalty Cone</strong> before rejoining play! Coach instantly feeds the other team for a <strong>3v2 power-play rush</strong>.</p>
+                </div>
+                <div class="rule-card bonus">
+                    <h4>4. "Back-Bar Clang" 2-Point Bonus</h4>
+                    <p><strong>1 Point</strong> for any goal that stays inside the face-down net. <strong>2 Points ("Clang Bonus")</strong> if a player pushes their top hand out, rolls their wrists over, and fires a low laser that hits the red crossbar lying flat on the ice at the back of the net!</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Setup &amp; Rotation (12–16 Skaters, No Goalies Needed)</h2>
+            <p>This game runs in a single End Zone (leaving the rest of the ice open for goalie work or skills stations) and keeps every player engaged even while resting between shifts:</p>
+            <ul>
+                <li><strong>Nets:</strong> Place two regulation nets cross-ice facing each other (one near the top boards, one near the bottom boards, centered around the faceoff dots) and <strong>tip both nets 90&deg; forward onto their faces</strong> so the open bottom faces the slot.</li>
+                <li><strong>Active Skaters (3v3 Inside the Zone):</strong> 3 Red (X1, X2, X3) vs. 3 Blue (O1, O2, O3) battle cross-ice. (Can also be played 2v2 for more open ice.)</li>
+                <li><strong>Active Perimeter Bumpers (Resting Line):</strong> The next shift of 3 Red players (XB) stations along the inside of the <strong>Blue Line</strong>, while the next shift of 3 Blue players (OB) stations along the <strong>Goal Line / End Boards</strong>. They must keep their blades cupped and flat on the ice at all times, ready for give-and-go wall passes.</li>
+                <li><strong>Neutral-Zone Penalty Cone:</strong> Place 1 Orange Cone in the Neutral Zone ~15–20 feet outside the Blue Line.</li>
+                <li><strong>Shift Rotation (~35–40 Seconds):</strong> On the Coach's double-whistle ("CHANGE!"), the 3 active players immediately swap places with their 3 Wall Bumpers, and the Coach spots a fresh puck into play.</li>
+            </ul>
+        </div>
+
+        <div class="section">
+            <h2>Detailed Coaching Points (What to Watch &amp; Correct)</h2>
+            <ol>
+                <li><strong>Fixing the "Shovel" (Top Hand Off the Hip):</strong>
+                    <ul>
+                        <li><em>Why kids shovel:</em> When a player's top hand is pinned against their hip/stomach, the only way to move the puck forward is to push the bottom hand forward and scoop under the puck like a shovel.</li>
+                        <li><em>The Correction:</em> Cue players to <strong>"Show your top hand to the target, then pull it back while rolling your wrists!"</strong> Pushing the top hand out in front of the body naturally angles the shaft forward and closes the blade over the puck.</li>
+                    </ul>
+                </li>
+                <li><strong>Quiet-Blade Pass Reception ("Cushion &amp; Cup"):</strong>
+                    <ul>
+                        <li>Watch the Wall Bumpers closely. If their toe is pointed up or the blade face is tilted backward when a pass arrives, the puck will ramp into the air (automatic turnover!). Teach them to angle the top of the blade slightly forward ("hooding" the puck) so hard passes stick dead to the tape.</li>
+                    </ul>
+                </li>
+                <li><strong>Point the Toe Down on Follow-Through:</strong>
+                    <ul>
+                        <li>To hit the 2-point red crossbar lying on the ice at the back of the face-down net, players must finish their follow-through with their <strong>wrists rolled completely over and the toe of the blade pointing down toward their target</strong>—not pointing up at the ceiling.</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="footer">
+            Designed for 10U stickhandling, passing, and low-release mechanics. Digital representation, text, and animation &copy; 2026 Michael Hertrick. All rights reserved.<br>
+            This specific work is licensed under a <a href="http://creativecommons.org/licenses/by-nc/4.0/" target="_blank" rel="noopener noreferrer">Creative Commons Attribution-NonCommercial 4.0 International License</a>.<br>
+            <a href="index.html">&larr; Back to All Drills</a>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('rink');
+        const ctx = canvas.getContext('2d');
+
+        // Animation timeline: 0 to 500
+        // Phase 1 (0..105):   Blue O1 shovels an open-blade pass -> bounces off O2 -> Coach Whistle ("NO SHOVEL!") & Turnover feed to Red
+        // Phase 2 (105..245): Red X1 flat pass to Bumper XB -> flat give-and-go to X2 -> Wrist-roll low shot hits back crossbar ("CLANG! +2 PTS")
+        // Phase 3 (245..355): Coach feeds Blue -> Blue activates Bumper OB -> O2 scoops shot HIGH over Top Net -> "AIR-MAIL PENALTY!" O2 sprints to NZ Cone
+        // Phase 4 (355..500): Coach immediately feeds Red for 3v2 Power Play while O2 tags cone -> X1 -> XB -> X3 backdoor low rolled-wrist goal!
+        let t = 0;
+        let playing = false;
+        let showGuides = true;
+        let showNetInset = false;
+
+        // Key coordinates on the 820x540 canvas:
+        // Neutral Zone is on the left (x = 20..230), Blue Line is at x = 230, End Zone is x = 230..790, Goal Line at x = 735
+        // Top Face-Down Net (defended by Red / attacked by Blue in P3, or attacked cross-ice):
+        // Let's assign:
+        //   - Top Face-Down Net (x = 515, y = 68, opening faces DOWN toward y = 270) -> Attacked by Red (X), Defended by Blue (O)
+        //   - Bottom Face-Down Net (x = 515, y = 472, opening faces UP toward y = 270) -> Attacked by Blue (O), Defended by Red (X)
+        //Wait: in Phase 3, Blue shoots high over the Bottom Net (or Top Net) and runs to the Penalty Cone! Let's make sure the nets and directions are crystal clear:
+        //   - Top Face-Down Net (y = 68): Red Target (Red attacks UP, Blue defends Top Net)
+        //   - Bottom Face-Down Net (y = 472): Blue Target (Blue attacks DOWN, Red defends Bottom Net)
+        //   - Red Wall Bumpers (XB1, XB2): Stationed along the inside of the Blue Line (x = 252, y = 165 & 365)
+        //   - Blue Wall Bumpers (OB1, OB2): Stationed along the Goal Line (x = 720, y = 165 & 365)
+        //   - Coach (C): Stationed at the top of the Blue Line / Neutral Zone (x = 230, y = 45) with pucks
+        //   - Penalty Cone: In Neutral Zone at (x = 95, y = 270)
+
+        const paths = {
+            // Team Red (X1, X2, X3) — Attacks TOP Face-Down Net (x=515, y=68)
+            X1: [
+                // Phase 1: Defending Blue
+                { t: 0,   x: 450, y: 290 },
+                { t: 55,  x: 490, y: 320 },
+                { t: 105, x: 370, y: 210, label: 'Turnover Puck!' },
+                // Phase 2: Receives Coach feed, passes flat to Bumper XB1, goes to net-front
+                { t: 130, x: 345, y: 195, label: 'Flat Pass' },
+                { t: 175, x: 430, y: 140 },
+                { t: 245, x: 450, y: 170 },
+                // Phase 3: Defending Blue's attack on Bottom Net
+                { t: 280, x: 490, y: 310 },
+                { t: 325, x: 480, y: 360 },
+                // Phase 4: Receives instant 3v2 Power Play pass from Coach!
+                { t: 365, x: 355, y: 205, label: '3v2 PP Feed!' },
+                { t: 395, x: 340, y: 185, label: 'Flat to Bumper' },
+                { t: 445, x: 420, y: 145 },
+                { t: 500, x: 450, y: 290 }
+            ],
+            X2: [
+                // Phase 1: Defending in slot
+                { t: 0,   x: 520, y: 340 },
+                { t: 60,  x: 540, y: 360 },
+                { t: 105, x: 470, y: 270 },
+                // Phase 2: Cuts into high slot, catches flat pass from XB1, cups & rolls wrists -> 2-PT CLANG GOAL!
+                { t: 150, x: 430, y: 215 },
+                { t: 172, x: 465, y: 180, label: 'Cup & Roll Wrists!' },
+                { t: 192, x: 495, y: 145, label: 'LOW RELEASE!' },
+                { t: 245, x: 520, y: 190 },
+                // Phase 3: Defending Blue
+                { t: 295, x: 525, y: 350 },
+                { t: 355, x: 490, y: 310 },
+                // Phase 4: Drives middle lane on 3v2 Power Play
+                { t: 415, x: 475, y: 165 },
+                { t: 465, x: 490, y: 125 },
+                { t: 500, x: 520, y: 340 }
+            ],
+            X3: [
+                // Phase 1: Right side defense
+                { t: 0,   x: 585, y: 285 },
+                { t: 60,  x: 600, y: 320 },
+                { t: 105, x: 575, y: 250 },
+                // Phase 2: Weak-side backdoor support
+                { t: 180, x: 575, y: 145 },
+                { t: 245, x: 590, y: 210 },
+                // Phase 3: Defending Blue
+                { t: 300, x: 585, y: 340 },
+                { t: 355, x: 570, y: 280 },
+                // Phase 4: Backdoor 3v2 Power Play open man (since O2 is at Penalty Cone!)
+                { t: 410, x: 565, y: 195 },
+                { t: 435, x: 555, y: 145, label: 'Wide Open 3v2!' },
+                { t: 452, x: 545, y: 132, label: 'WRIST ROLL GOAL!' },
+                { t: 500, x: 585, y: 285 }
+            ],
+
+            // Team Blue (O1, O2, O3) — Attacks BOTTOM Face-Down Net (x=515, y=472)
+            O1: [
+                // Phase 1: Starts with puck, shovels an open-blade air pass to O2!
+                { t: 0,   x: 460, y: 220, label: 'Open-Blade Shovel!' },
+                { t: 35,  x: 445, y: 255, label: 'Scooped in Air!' },
+                { t: 105, x: 430, y: 230 },
+                // Phase 2: Defending Top Net against Red
+                { t: 160, x: 445, y: 155 },
+                { t: 210, x: 465, y: 130 },
+                // Phase 3: Catches Coach feed, passes flat to Blue Bumper OB2
+                { t: 255, x: 555, y: 245, label: 'Flat to Bumper' },
+                { t: 285, x: 590, y: 310 },
+                { t: 355, x: 560, y: 330 },
+                // Phase 4: Stuck defending 3v2 shorthanded with O3!
+                { t: 415, x: 445, y: 165, label: 'Defending 2v3!' },
+                { t: 465, x: 465, y: 130 },
+                { t: 500, x: 460, y: 220 }
+            ],
+            O2: [
+                // Phase 1: Blade is open like a ramp -> puck pops up off stick -> Coach Whistle!
+                { t: 0,   x: 565, y: 270 },
+                { t: 45,  x: 545, y: 315, label: 'POP-UP! Blade Open!' },
+                { t: 85,  x: 545, y: 315, label: 'TURNOVER!' },
+                { t: 105, x: 535, y: 245 },
+                // Phase 2: Defending Top Net
+                { t: 170, x: 515, y: 130 },
+                { t: 245, x: 525, y: 195 },
+                // Phase 3: Receives flat pass from Bumper OB2, but leans back & SHOVELS SHOT HIGH over Bottom Net!
+                { t: 285, x: 565, y: 345 },
+                { t: 305, x: 530, y: 380, label: 'Leans Back & Scoops!' },
+                { t: 325, x: 525, y: 390, label: 'HIGH SHOT PENALTY!' },
+                // Phase 4: Must sprint out across Blue Line to tag the Neutral-Zone Penalty Cone at (95, 270)!
+                { t: 365, x: 310, y: 320, label: 'Sprint to Cone!' },
+                { t: 405, x: 105, y: 270, label: 'TAGS PENALTY CONE!' },
+                { t: 455, x: 290, y: 235, label: 'Chasing Play Back' },
+                { t: 500, x: 565, y: 270 }
+            ],
+            O3: [
+                // Phase 1: Weak-side support
+                { t: 0,   x: 615, y: 215 },
+                { t: 60,  x: 610, y: 275 },
+                { t: 105, x: 590, y: 210 },
+                // Phase 2: Defending Top Net
+                { t: 175, x: 565, y: 135 },
+                { t: 245, x: 600, y: 195 },
+                // Phase 3: Net-front support
+                { t: 300, x: 465, y: 375 },
+                { t: 355, x: 475, y: 325 },
+                // Phase 4: Scrambles back to defend 3v2 shorthanded
+                { t: 415, x: 510, y: 150, label: 'Outnumbered 3v2!' },
+                { t: 460, x: 515, y: 120 },
+                { t: 500, x: 615, y: 215 }
+            ],
+
+            // Puck Trajectory across all 4 Phases
+            Puck: [
+                // Phase 1 (0..105): O1 shovels air pass (t=20..45) -> pops up off O2's blade -> Coach blows whistle & feeds new puck at t=90
+                { t: 0,   x: 468, y: 226, style: 'flat' },
+                { t: 20,  x: 453, y: 250, style: 'air'  }, // Shoveled pass leaves ice!
+                { t: 45,  x: 540, y: 310, style: 'pop'  }, // Hits O2's open blade & pops up!
+                { t: 68,  x: 572, y: 290, style: 'dead' }, // Dead puck
+                { t: 88,  x: 235, y: 55,  style: 'flat' }, // Coach spots new puck!
+                { t: 105, x: 362, y: 205, style: 'flat' }, // Crisp flat pass to X1
+
+                // Phase 2 (105..245): X1 carries -> flat pass to XB1 (252, 165) -> flat pass to X2 -> 2-pt low laser hits back bar (515, 42)!
+                { t: 130, x: 337, y: 192, style: 'flat' },
+                { t: 148, x: 260, y: 165, style: 'flat' }, // Caught flat by Bumper XB1!
+                { t: 155, x: 260, y: 165, style: 'flat' }, // Quiet blade cushion
+                { t: 172, x: 458, y: 180, style: 'flat' }, // Tape-to-tape pass to X2
+                { t: 190, x: 495, y: 138, style: 'flat' }, // X2 cups & rolls wrists
+                { t: 204, x: 515, y: 40,  style: 'clang'}, // HITS BACK RED CROSSBAR ON ICE! CLANG! +2 PTS!
+                { t: 244, x: 515, y: 42,  style: 'clang'},
+
+                // Phase 3 (245..355): Coach feeds O1 -> flat pass to Blue Bumper OB2 (720, 365) -> pass to O2 -> O2 shoots HIGH over Bottom Net!
+                { t: 245, x: 235, y: 55,  style: 'flat' },
+                { t: 260, x: 550, y: 245, style: 'flat' }, // Coach pass to O1
+                { t: 276, x: 712, y: 365, style: 'flat' }, // Flat pass to Goal-Line Bumper OB2
+                { t: 282, x: 712, y: 365, style: 'flat' },
+                { t: 298, x: 538, y: 375, style: 'flat' }, // Bumper pass to O2
+                { t: 310, x: 525, y: 388, style: 'air'  }, // O2 leans back & shovels shot HIGH!
+                { t: 328, x: 520, y: 522, style: 'miss' }, // Flies OVER the upturned net & hits glass!
+                { t: 354, x: 520, y: 525, style: 'miss' },
+
+                // Phase 4 (355..500): Coach immediately feeds X1 for 3v2 Power Play -> X1 to XB1 -> XB1 to X2 -> X2 across to X3 -> LOW GOAL!
+                { t: 355, x: 235, y: 55,  style: 'flat' },
+                { t: 370, x: 350, y: 200, style: 'flat' }, // Coach feeds X1
+                { t: 392, x: 335, y: 185, style: 'flat' },
+                { t: 406, x: 260, y: 165, style: 'flat' }, // Pass to Red Bumper XB1 (unlocked!)
+                { t: 412, x: 260, y: 165, style: 'flat' },
+                { t: 426, x: 475, y: 160, style: 'flat' }, // XB1 hits X2 in slot
+                { t: 440, x: 550, y: 138, style: 'flat' }, // X2 slides flat backdoor pass to open X3
+                { t: 452, x: 545, y: 126, style: 'flat' }, // X3 rolls wrists over
+                { t: 465, x: 528, y: 42,  style: 'clang'}, // Buries low shot into back bar!
+                { t: 500, x: 528, y: 42,  style: 'clang'}
+            ]
+        };
+
+        function getPos(frames, time) {
+            if (time <= frames[0].t) return frames[0];
+            if (time >= frames[frames.length - 1].t) return frames[frames.length - 1];
+            for (let i = 0; i < frames.length - 1; i++) {
+                if (time >= frames[i].t && time < frames[i + 1].t) {
+                    let f1 = frames[i], f2 = frames[i + 1];
+                    let p = (time - f1.t) / (f2.t - f1.t);
+                    return {
+                        x: f1.x + (f2.x - f1.x) * p,
+                        y: f1.y + (f2.y - f1.y) * p,
+                        label: f1.label || '',
+                        style: f1.style || 'flat'
+                    };
+                }
+            }
+            return frames[frames.length - 1];
+        }
+
+        function drawEndZoneRink() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Rink Surface (Neutral Zone x=20..230, End Zone x=230..795, y=20..520)
+            ctx.beginPath();
+            ctx.roundRect(20, 20, 775, 500, [0, 90, 90, 0]);
+            ctx.fillStyle = '#fdfdfd';
+            ctx.fill();
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = '#333';
+            ctx.stroke();
+
+            // Blue Line (x = 230)
+            ctx.strokeStyle = '#2980b9';
+            ctx.lineWidth = 6;
+            ctx.beginPath();
+            ctx.moveTo(230, 20);
+            ctx.lineTo(230, 520);
+            ctx.stroke();
+
+            // Goal Line (x = 735)
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(735, 34);
+            ctx.lineTo(735, 506);
+            ctx.stroke();
+
+            // Neutral Zone Faceoff Dots (x = 165, y = 140 & 400)
+            ctx.fillStyle = '#c0392b';
+            for (let y of [140, 400]) {
+                ctx.beginPath();
+                ctx.arc(165, y, 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // End Zone Faceoff Circles (x = 515, y = 145 & 395)
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 2;
+            for (let y of [145, 395]) {
+                ctx.beginPath();
+                ctx.arc(515, y, 70, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(515, y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#c0392b';
+                ctx.fill();
+            }
+
+            // Original Regulation Crease at Goal Line (empty — no goalie needed)
+            ctx.fillStyle = 'rgba(133, 193, 233, 0.35)';
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.arc(735, 270, 26, Math.PI / 2, -Math.PI / 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw the TWO Face-Down Low-Profile Nets Cross-Ice!
+            // Top Net at (x=515, front opening at y=68, back crossbar on ice at y=38) -> Attacked by RED
+            drawFaceDownNet(515, 68, 'down', '#e74c3c', 'TOP LOW NET (Red Target)');
+            // Bottom Net at (x=515, front opening at y=472, back crossbar on ice at y=502) -> Attacked by BLUE
+            drawFaceDownNet(515, 472, 'up', '#3498db', 'BOTTOM LOW NET (Blue Target)');
+        }
+
+        function drawFaceDownNet(cx, frontY, openingDir, teamColor, labelText) {
+            ctx.save();
+            const halfW = 32; // 64px wide (6-foot regulation width)
+            const depth = 28; // 4-foot vertical posts now lying flat on the ice!
+            const backY = openingDir === 'down' ? (frontY - depth) : (frontY + depth);
+            const topY = Math.min(frontY, backY);
+
+            // Low-shot scoring zone highlight in front of the flush entrance
+            ctx.fillStyle = openingDir === 'down' ? 'rgba(231, 76, 60, 0.10)' : 'rgba(52, 152, 219, 0.10)';
+            ctx.beginPath();
+            if (openingDir === 'down') {
+                ctx.arc(cx, frontY, 28, 0, Math.PI);
+            } else {
+                ctx.arc(cx, frontY, 28, Math.PI, Math.PI * 2);
+            }
+            ctx.fill();
+
+            // Sloped netting mesh body (from upturned bottom skirt down to the crossbar on the ice)
+            ctx.fillStyle = 'rgba(220, 226, 232, 0.85)';
+            ctx.fillRect(cx - halfW, topY, halfW * 2, depth);
+
+            // Mesh cross-hatching lines
+            ctx.strokeStyle = 'rgba(120, 130, 140, 0.45)';
+            ctx.lineWidth = 1;
+            for (let gx = cx - halfW + 8; gx < cx + halfW; gx += 8) {
+                ctx.beginPath();
+                ctx.moveTo(gx, topY);
+                ctx.lineTo(gx, topY + depth);
+                ctx.stroke();
+            }
+
+            // Two red goal posts lying flat on the ice on the left & right sides
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 3.5;
+            ctx.beginPath();
+            ctx.moveTo(cx - halfW, frontY);
+            ctx.lineTo(cx - halfW, backY);
+            ctx.moveTo(cx + halfW, frontY);
+            ctx.lineTo(cx + halfW, backY);
+            ctx.stroke();
+
+            // BACK RED CROSSBAR lying flat on the ice (The 2-Point "CLANG BAR"!)
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(cx - halfW, backY);
+            ctx.lineTo(cx + halfW, backY);
+            ctx.stroke();
+
+            // Upturned Bottom Base Skirt arching above the front entrance ("Low Crossbar" ~1/4 height)
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([5, 3]);
+            ctx.beginPath();
+            ctx.moveTo(cx - halfW, frontY);
+            ctx.lineTo(cx + halfW, frontY);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Labels for the Face-Down Net
+            ctx.fillStyle = '#1a365d';
+            ctx.font = 'bold 9.5px Arial';
+            ctx.textAlign = 'center';
+            if (openingDir === 'down') {
+                ctx.fillText('2-PT "CLANG BAR" (Crossbar on Ice)', cx, backY - 7);
+                ctx.fillStyle = teamColor;
+                ctx.fillText('FLUSH ICE ENTRY (Upturned Skirt = Low Bar)', cx, frontY + 13);
+            } else {
+                ctx.fillText('2-PT "CLANG BAR" (Crossbar on Ice)', cx, backY + 13);
+                ctx.fillStyle = teamColor;
+                ctx.fillText('FLUSH ICE ENTRY (Upturned Skirt = Low Bar)', cx, frontY - 7);
+            }
+            ctx.restore();
+        }
+
+        function drawCone(x, y, labelText) {
+            ctx.save();
+            const r = 9;
+            ctx.beginPath();
+            ctx.moveTo(x, y - r);
+            ctx.lineTo(x - r, y + r);
+            ctx.lineTo(x + r, y + r);
+            ctx.closePath();
+            ctx.fillStyle = '#e67e22';
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = '#a04000';
+            ctx.stroke();
+
+            if (labelText) {
+                ctx.fillStyle = '#a04000';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(labelText, x, y - 14);
+                ctx.font = 'bold 9px Arial';
+                ctx.fillText('(High Shot = Sprint & Tag!)', x, y + 22);
+            }
+            ctx.restore();
+        }
+
+        function drawGuidesAndZones() {
+            // Draw Neutral-Zone Penalty Cone
+            drawCone(95, 270, '"AIR-MAIL" PENALTY CONE');
+
+            if (!showGuides) return;
+
+            ctx.save();
+            // Red Wall Bumper Zone Box (inside Blue Line)
+            ctx.fillStyle = 'rgba(231, 76, 60, 0.06)';
+            ctx.strokeStyle = 'rgba(231, 76, 60, 0.35)';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([4, 4]);
+            ctx.beginPath();
+            ctx.roundRect(236, 95, 42, 340, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Blue Wall Bumper Zone Box (along Goal Line)
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.06)';
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.35)';
+            ctx.beginPath();
+            ctx.roundRect(692, 95, 40, 340, 6);
+            ctx.fill();
+            ctx.stroke();
+
+            // Guide labels for Bumper Lanes
+            ctx.save();
+            ctx.translate(220, 270);
+            ctx.rotate(-Math.PI / 2);
+            ctx.fillStyle = '#c0392b';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('RED WALL BUMPERS (Flat Give-and-Go)', 0, 0);
+            ctx.restore();
+
+            ctx.save();
+            ctx.translate(750, 270);
+            ctx.rotate(Math.PI / 2);
+            ctx.fillStyle = '#2980b9';
+            ctx.font = 'bold 10px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('BLUE WALL BUMPERS (Flat Give-and-Go)', 0, 0);
+            ctx.restore();
+
+            // Penalty Sprint Path Guide (when in Phase 3 or 4, or light guide always)
+            ctx.strokeStyle = (t >= 310 && t <= 460) ? 'rgba(230, 126, 34, 0.75)' : 'rgba(230, 126, 34, 0.28)';
+            ctx.lineWidth = (t >= 310 && t <= 460) ? 2.5 : 1.5;
+            ctx.setLineDash([6, 4]);
+            ctx.beginPath();
+            ctx.moveTo(525, 390);
+            ctx.lineTo(105, 270);
+            ctx.lineTo(350, 220);
+            ctx.stroke();
+
+            ctx.restore();
+        }
+
+        function drawPlayer(x, y, label, type, subLabel) {
+            ctx.save();
+            let radius = 12;
+
+            if (type === 'x') {
+                ctx.fillStyle = '#e74c3c';
+            } else if (type === 'xb') {
+                ctx.fillStyle = '#e74c3c';
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 2.5;
+            } else if (type === 'o') {
+                ctx.fillStyle = '#3498db';
+            } else if (type === 'ob') {
+                ctx.fillStyle = '#3498db';
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 2.5;
+            } else if (type === 'c') {
+                ctx.fillStyle = '#27ae60';
+            }
+
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            if (type === 'xb' || type === 'ob') ctx.stroke();
+
+            // Draw small flat stick blade indicator on Bumpers & active shooters
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 10.5px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(label, x, y);
+
+            if (subLabel) {
+                ctx.font = 'bold 10px Arial';
+                const textW = ctx.measureText(subLabel).width + 10;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+                ctx.beginPath();
+                ctx.roundRect(x - textW / 2, y - 28, textW, 15, 4);
+                ctx.fill();
+                ctx.strokeStyle = '#cbd5e0';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.fillStyle = subLabel.includes('PENALTY') || subLabel.includes('POP-UP') || subLabel.includes('TURNOVER') || subLabel.includes('Scoop')
+                    ? '#c0392b'
+                    : (subLabel.includes('GOAL') || subLabel.includes('Cup') || subLabel.includes('LOW') ? '#1e8449' : '#1a365d');
+                ctx.fillText(subLabel, x, y - 20);
+            }
+            ctx.restore();
+        }
+
+        function drawBumpersAndCoach() {
+            // Coach at top of Blue Line with puck pile
+            let coachLabel = 'Spot Pucks / Ref';
+            if (t >= 45 && t < 105) coachLabel = 'WHISTLE! No Shovels!';
+            else if (t >= 325 && t < 385) coachLabel = 'HIGH SHOT! 3v2 Puck!';
+            drawPlayer(230, 48, 'C', 'c', coachLabel);
+
+            // Coach's puck pile
+            for (let [px, py] of [[212, 42], [210, 50], [215, 56]]) {
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.arc(px, py, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // Red Wall Bumpers (XB1, XB2, XB3) along inside of Blue Line
+            let xb1Label = '';
+            if (t >= 140 && t <= 172) xb1Label = 'Quiet Flat Blade! (Unlocked)';
+            else if (t >= 400 && t <= 428) xb1Label = 'Flat Touch Pass!';
+            drawPlayer(256, 165, 'XB1', 'xb', xb1Label);
+            drawPlayer(256, 270, 'XB2', 'xb', '');
+            drawPlayer(256, 375, 'XB3', 'xb', '');
+
+            // Blue Wall Bumpers (OB1, OB2, OB3) along Goal Line
+            let ob2Label = '';
+            if (t >= 270 && t <= 298) ob2Label = 'Flat Cushion & Pass!';
+            drawPlayer(714, 165, 'OB1', 'ob', '');
+            drawPlayer(714, 270, 'OB2', 'ob', '');
+            drawPlayer(714, 365, 'OB3', 'ob', ob2Label);
+        }
+
+        function drawPuckWithEffect(puckPos) {
+            ctx.save();
+            if (puckPos.style === 'air' || puckPos.style === 'pop' || puckPos.style === 'miss') {
+                // Draw shadow on ice + elevated bouncing puck to show shoveled/air puck!
+                ctx.fillStyle = 'rgba(0,0,0,0.22)';
+                ctx.beginPath();
+                ctx.ellipse(puckPos.x, puckPos.y + 8, 6, 3, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#c0392b';
+                ctx.beginPath();
+                ctx.arc(puckPos.x, puckPos.y - 4, 7.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                ctx.fillStyle = '#c0392b';
+                ctx.font = 'bold 10px Arial';
+                ctx.textAlign = 'center';
+                const errText = puckPos.style === 'miss' ? 'OVER THE NET! (High Shot)' : 'OFF THE ICE! (Shoveled)';
+                ctx.fillText(errText, puckPos.x, puckPos.y - 16);
+            } else if (puckPos.style === 'clang') {
+                // 2-Point Clang Goal visual burst!
+                ctx.strokeStyle = '#f1c40f';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(puckPos.x, puckPos.y, 13, 0, Math.PI * 2);
+                ctx.stroke();
+
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.arc(puckPos.x, puckPos.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = '#1e8449';
+                ctx.font = 'bold 11px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText('CLANG! +2 PTS (Flat Back-Bar Hit!)', puckPos.x, puckPos.y + 52);
+            } else {
+                // Crisp flat puck on the ice
+                ctx.fillStyle = '#111';
+                ctx.beginPath();
+                ctx.arc(puckPos.x, puckPos.y, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            ctx.restore();
+        }
+
+        function drawHUD() {
+            let phaseTitle = '';
+            let habitNote = '';
+            let redScore = 0;
+            let blueScore = 0;
+
+            if (t < 105) {
+                phaseTitle = 'Phase 1: "No-Shovel" Rule — Open-Blade Air Pass = Instant Turnover';
+                habitNote = 'O1 scoops pass in the air & it pops off O2\'s open blade -> Coach blows whistle & feeds Red!';
+            } else if (t < 245) {
+                phaseTitle = 'Phase 2: Good Habits — Flat Bumper Give-and-Go + 2-Pt "Clang" Goal';
+                habitNote = 'X1 passes flat to Bumper XB1 -> X2 catches flat, pulls puck in, rolls wrists over & hits back bar!';
+                if (t >= 204) redScore = 2;
+            } else if (t < 355) {
+                phaseTitle = 'Phase 3: "Air-Mail" Penalty — Shoveled High Shot = Sprint to NZ Cone';
+                habitNote = 'Blue activates Bumper OB3, but O2 leans back & shovels shot over the low net -> Must tag NZ Cone!';
+                redScore = 2;
+            } else {
+                phaseTitle = 'Phase 4: Instant 3v2 Power Play — Low Rolled-Wrist Backdoor Goal';
+                habitNote = 'While O2 tags the Penalty Cone, Coach feeds Red for a 3v2 rush -> Flat passing to X3 for low goal!';
+                redScore = (t >= 465) ? 4 : 2;
+            }
+
+            // Update active phase button highlight
+            document.getElementById('btnP1').className = 'phase-btn' + (t < 105 ? ' active' : '');
+            document.getElementById('btnP2').className = 'phase-btn' + (t >= 105 && t < 245 ? ' active' : '');
+            document.getElementById('btnP3').className = 'phase-btn' + (t >= 245 && t < 355 ? ' active' : '');
+            document.getElementById('btnP4').className = 'phase-btn' + (t >= 355 ? ' active' : '');
+
+            // Top-Left Scoreboard & Habit Status Banner in Neutral Zone
+            ctx.save();
+            ctx.fillStyle = 'rgba(26, 54, 93, 0.92)';
+            ctx.beginPath();
+            ctx.roundRect(26, 26, 192, 92, 8);
+            ctx.fill();
+
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 12px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SCOREBOARD', 122, 44);
+
+            ctx.fillStyle = '#ff7675';
+            ctx.font = 'bold 13px Arial';
+            ctx.fillText(`RED (X): ${redScore} PTS`, 122, 66);
+
+            ctx.fillStyle = '#74b9ff';
+            ctx.fillText(`BLUE (O): ${blueScore} PTS`, 122, 86);
+
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('1 Pt Goal | 2 Pts Back-Bar Clang', 122, 106);
+
+            // Bottom HUD Banner across Neutral/Bottom area
+            ctx.fillStyle = 'rgba(26, 54, 93, 0.90)';
+            ctx.beginPath();
+            ctx.roundRect(26, 468, 415, 46, 7);
+            ctx.fill();
+
+            ctx.fillStyle = '#f1c40f';
+            ctx.font = 'bold 11.5px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(phaseTitle, 36, 486);
+
+            ctx.fillStyle = '#edf2f7';
+            ctx.font = '10.5px Arial';
+            ctx.fillText(habitNote, 36, 504);
+            ctx.restore();
+        }
+
+        function drawSideViewNetInset() {
+            if (!showNetInset) return;
+            ctx.save();
+            // Modal overlay card in center of canvas showing Upright vs Face-Down Net Side View
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.97)';
+            ctx.strokeStyle = '#2b6cb0';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.roundRect(145, 95, 530, 340, 12);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = '#1a365d';
+            ctx.font = 'bold 15px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('SIDE-VIEW GEOMETRY: WHY TIPPING THE NET FACE-DOWN WORKS', 410, 125);
+
+            // Left Diagram: Standard Upright Net (48" Tall)
+            ctx.fillStyle = '#2c5282';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText('1. Standard Upright Net (48" Tall)', 280, 155);
+
+            // Ice line left
+            ctx.strokeStyle = '#85c1e9';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(180, 310);
+            ctx.lineTo(380, 310);
+            ctx.stroke();
+
+            // Upright net side profile: front post (x=250, y=200..310), top shelf (250..285), back curve to (325, 310)
+            ctx.fillStyle = 'rgba(220, 226, 232, 0.7)';
+            ctx.beginPath();
+            ctx.moveTo(250, 310);
+            ctx.lineTo(250, 200);
+            ctx.lineTo(285, 200);
+            ctx.lineTo(325, 310);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(250, 200);
+            ctx.lineTo(285, 200);
+            ctx.lineTo(325, 310);
+            ctx.lineTo(250, 310);
+            ctx.stroke();
+
+            // Front vertical red post
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(250, 310);
+            ctx.lineTo(250, 200);
+            ctx.stroke();
+
+            // Shoveled high shot arrow (bad habit) still scores in upright net
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(185, 305);
+            ctx.lineTo(265, 220);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#c0392b';
+            ctx.font = '10.5px Arial';
+            ctx.fillText('Shoveled / Open-Blade Shot', 280, 332);
+            ctx.fillText('still goes in high (rewards bad habit!)', 280, 346);
+
+            // Right Diagram: Tipped 90 deg Forward Face-Down!
+            ctx.fillStyle = '#1e8449';
+            ctx.font = 'bold 12px Arial';
+            ctx.fillText('2. Tipped 90\u00B0 Forward Face-Down (~1/4 Height)', 535, 155);
+
+            // Ice line right
+            ctx.strokeStyle = '#85c1e9';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.moveTo(425, 310);
+            ctx.lineTo(650, 310);
+            ctx.stroke();
+
+            // Face-down net side profile:
+            // Front bottom heel at (490, 310), Crossbar lying flat on ice 4ft back at (600, 310)
+            // Upturned bottom base skirt sticks up to (490, 252), back netting slopes down to (600, 275) -> (600, 310)
+            ctx.fillStyle = 'rgba(220, 226, 232, 0.8)';
+            ctx.beginPath();
+            ctx.moveTo(490, 310);
+            ctx.lineTo(490, 252);
+            ctx.lineTo(600, 275);
+            ctx.lineTo(600, 310);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.strokeStyle = '#4a5568';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(490, 310);
+            ctx.lineTo(490, 252);
+            ctx.lineTo(600, 275);
+            ctx.lineTo(600, 310);
+            ctx.stroke();
+
+            // Red Goal Post & Crossbar lying flat on the ice!
+            ctx.strokeStyle = '#c0392b';
+            ctx.lineWidth = 5;
+            ctx.beginPath();
+            ctx.moveTo(490, 310);
+            ctx.lineTo(600, 310);
+            ctx.stroke();
+
+            // Back Red Crossbar Circle at (600, 307)
+            ctx.fillStyle = '#c0392b';
+            ctx.beginPath();
+            ctx.arc(600, 306, 6, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Low rolled-wrist shot arrow (green) -> hits Clang Bar!
+            ctx.strokeStyle = '#1e8449';
+            ctx.lineWidth = 2.5;
+            ctx.beginPath();
+            ctx.moveTo(430, 302);
+            ctx.lineTo(592, 304);
+            ctx.stroke();
+
+            // High shoveled shot arrow (red dashed) -> misses over upturned skirt!
+            ctx.strokeStyle = '#e74c3c';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([4, 3]);
+            ctx.beginPath();
+            ctx.moveTo(430, 302);
+            ctx.lineTo(535, 220);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            ctx.fillStyle = '#c0392b';
+            ctx.font = 'bold 10px Arial';
+            ctx.fillText('Shoveled Shot = Misses High (Penalty Cone!)', 535, 210);
+
+            ctx.fillStyle = '#1e8449';
+            ctx.fillText('Flush Ice Entry (No Front Pipe!) -> Hits 2-Pt Back Crossbar!', 535, 332);
+            ctx.fillStyle = '#1a365d';
+            ctx.font = '10.5px Arial';
+            ctx.fillText('Full 6-ft regulation width, but forces rolled wrists & flat blades.', 535, 348);
+
+            // Footer hint inside modal
+            ctx.fillStyle = '#7f8c8d';
+            ctx.font = 'italic 11px Arial';
+            ctx.fillText('Click "Hide Side-View Net Geometry Inset" below to return to the live drill view.', 410, 415);
+            ctx.restore();
+        }
+
+        function renderFrame() {
+            drawEndZoneRink();
+            drawGuidesAndZones();
+            drawBumpersAndCoach();
+
+            // Draw Active 3v3 Players
+            for (let id of ['X1', 'X2', 'X3']) {
+                const pos = getPos(paths[id], t);
+                drawPlayer(pos.x, pos.y, id, 'x', pos.label);
+            }
+            for (let id of ['O1', 'O2', 'O3']) {
+                const pos = getPos(paths[id], t);
+                drawPlayer(pos.x, pos.y, id, 'o', pos.label);
+            }
+
+            // Draw Puck
+            const puckPos = getPos(paths.Puck, t);
+            drawPuckWithEffect(puckPos);
+
+            drawHUD();
+            drawSideViewNetInset();
+
+            if (playing) {
+                t += 0.42;
+                if (t >= 500) {
+                    t = 0;
+                }
+                requestAnimationFrame(renderFrame);
+            }
+        }
+
+        function togglePlay() {
+            playing = !playing;
+            document.getElementById('playBtn').innerText = playing ? 'Pause Animation' : 'Play Animation';
+            if (playing) renderFrame();
+        }
+
+        function resetAnimation() {
+            playing = false;
+            t = 0;
+            document.getElementById('playBtn').innerText = 'Play Animation';
+            renderFrame();
+        }
+
+        function jumpToPhase(targetT) {
+            t = targetT;
+            if (!playing) renderFrame();
+        }
+
+        function toggleGuides() {
+            showGuides = !showGuides;
+            document.getElementById('guideBtn').innerText = showGuides ? 'Hide Passing Lanes & Zone Guides' : 'Show Passing Lanes & Zone Guides';
+            if (!playing) renderFrame();
+        }
+
+        function toggleNetInset() {
+            showNetInset = !showNetInset;
+            document.getElementById('netViewBtn').innerText = showNetInset ? 'Hide Side-View Net Geometry Inset' : 'Show Side-View Net Geometry Inset';
+            if (!playing) renderFrame();
+        }
+
+        // Initial render
+        renderFrame();
+    </script>
+    <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "12710b40db8142a68023b20ab160712d"}'></script><!-- End Cloudflare Web Analytics -->
+</body>
+</html>
